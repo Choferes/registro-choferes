@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Balanza</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container panel">
+
+        <img src="img/logo.png" alt="Molinos Florencia" class="logo">
+
+        <h1>Panel Balanza</h1>
+
+        <p class="subtitulo">
+            Cargas registradas del día
+        </p>
+
+        <div id="registros"></div>
+
+    </div>
+
+    <script>
+
+        async function cambiarEstado(id) {
+            await fetch(`/api/registros/${id}/estado`, {
+                method: 'PUT'
+            });
+
+            cargarRegistros();
+        }
+
+        async function cargarRegistros() {
+            const respuesta = await fetch('/api/balanza/registros');
+            const registros = await respuesta.json();
+
+            const contenedor = document.getElementById('registros');
+
+            contenedor.innerHTML = '';
+
+            if (registros.length === 0) {
+                contenedor.innerHTML = `
+                    <p class="sin-registros">
+                        No hay choferes registrados hoy.
+                    </p>
+                `;
+                return;
+            }
+
+            registros.forEach(registro => {
+                const tarjeta = document.createElement('div');
+
+                tarjeta.className = 'tarjeta-registro';
+
+                const estadoClase =
+                    registro.estado === 'PENDIENTE'
+                        ? 'estado-pendiente'
+                        : 'estado-ingresado';
+
+                tarjeta.innerHTML = `
+                    <h3>Ticket N° ${registro.id}</h3>
+
+                    <p><strong>Chofer:</strong> ${registro.nombre_apellido}</p>
+                    <p><strong>CUIT Chofer:</strong> ${registro.cuit_chofer}</p>
+                    <p><strong>Celular:</strong> ${registro.celular}</p>
+                    <p><strong>Patente Chasis:</strong> ${registro.patente_chasis}</p>
+                    <p><strong>Patente Acoplado:</strong> ${registro.patente_acoplado}</p>
+                    <p><strong>Destino:</strong> ${registro.destino || '-'}</p>
+                    <p><strong>Neto a cargar:</strong> ${registro.neto_cargar}</p>
+                    <p><strong>Transporte:</strong> ${registro.transporte}</p>
+                    <p><strong>Hora:</strong> ${registro.hora_registro}</p>
+
+                    <p class="${estadoClase}">
+                        ${registro.estado}
+                    </p>
+
+                    ${
+                        registro.estado === 'PENDIENTE'
+                            ? `
+                                <button
+                                    class="btn-ingresado"
+                                    onclick="cambiarEstado(${registro.id})"
+                                >
+                                    INGRESADO AL SISTEMA
+                                </button>
+                            `
+                            : ''
+                    }
+                `;
+
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        cargarRegistros();
+
+        setInterval(cargarRegistros, 10000);
+
+    </script>
+
+</body>
+
+</html>

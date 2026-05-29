@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Logística</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container panel">
+
+        <img src="img/logo.png" alt="Molinos Florencia" class="logo">
+
+        <h1>Panel Logística</h1>
+
+        <p class="subtitulo">
+            Historial completo de registros
+        </p>
+
+        <input
+            type="text"
+            id="busquedaPatente"
+            placeholder="Buscar por patente, chofer o ticket..."
+            class="busqueda"
+        >
+
+        <div id="registros"></div>
+
+    </div>
+
+    <script>
+
+        let registrosGlobales = [];
+
+        async function cargarRegistros() {
+            const respuesta = await fetch('/api/logistica/registros');
+            const registros = await respuesta.json();
+
+            registrosGlobales = registros;
+
+            mostrarRegistros(registrosGlobales);
+        }
+
+        function mostrarRegistros(registros) {
+            const contenedor = document.getElementById('registros');
+
+            contenedor.innerHTML = '';
+
+            if (registros.length === 0) {
+                contenedor.innerHTML = `
+                    <p class="sin-registros">
+                        No se encontraron registros.
+                    </p>
+                `;
+                return;
+            }
+
+            registros.forEach(registro => {
+                const tarjeta = document.createElement('div');
+
+                tarjeta.className = 'tarjeta-registro';
+
+                const estadoClase =
+                    registro.estado === 'PENDIENTE'
+                        ? 'estado-pendiente'
+                        : 'estado-ingresado';
+
+                tarjeta.innerHTML = `
+                    <h3>Ticket N° ${registro.id}</h3>
+
+                    <p><strong>Chofer:</strong> ${registro.nombre_apellido}</p>
+                    <p><strong>CUIT Chofer:</strong> ${registro.cuit_chofer}</p>
+                    <p><strong>Celular:</strong> ${registro.celular}</p>
+                    <p><strong>Patente Chasis:</strong> ${registro.patente_chasis}</p>
+                    <p><strong>Patente Acoplado:</strong> ${registro.patente_acoplado}</p>
+                    <p><strong>Destino:</strong> ${registro.destino || '-'}</p>
+                    <p><strong>Neto a cargar:</strong> ${registro.neto_cargar}</p>
+                    <p><strong>Transporte:</strong> ${registro.transporte}</p>
+                    <p><strong>Fecha:</strong> ${formatearFecha(registro.fecha_registro)}</p>
+                    <p><strong>Hora:</strong> ${registro.hora_registro}</p>
+
+                    <p class="${estadoClase}">
+                        ${registro.estado}
+                    </p>
+                `;
+
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        function formatearFecha(fecha) {
+            const fechaObj = new Date(fecha);
+            return fechaObj.toLocaleDateString('es-AR');
+        }
+
+        document
+            .getElementById('busquedaPatente')
+            .addEventListener('input', function () {
+                const texto = this.value.toLowerCase().trim();
+
+                const filtrados = registrosGlobales.filter(registro => {
+                    return (
+                        String(registro.id).includes(texto) ||
+                        registro.nombre_apellido.toLowerCase().includes(texto) ||
+                        registro.patente_chasis.toLowerCase().includes(texto) ||
+                        registro.patente_acoplado.toLowerCase().includes(texto)
+                    );
+                });
+
+                mostrarRegistros(filtrados);
+            });
+
+        cargarRegistros();
+
+    </script>
+
+</body>
+
+</html>

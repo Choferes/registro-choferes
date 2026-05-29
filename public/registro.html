@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Registro de Choferes</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <img
+            src="img/logo.png"
+            alt="Molinos Florencia"
+            class="logo"
+        >
+
+        <h1>Registro de Choferes</h1>
+
+        <p class="subtitulo">
+            Complete los siguientes datos
+        </p>
+
+        <form id="formRegistro">
+
+            <input
+                type="text"
+                name="nombre_apellido"
+                placeholder="Nombre y apellido"
+                required
+            >
+
+            <input
+                type="text"
+                name="cuit_chofer"
+                placeholder="N° Cuit Chofer"
+                required
+            >
+
+            <input
+                type="text"
+                name="celular"
+                placeholder="Celular sin 0 y sin 15"
+                required
+            >
+
+            <input
+                type="text"
+                name="patente_chasis"
+                placeholder="Patente Chasis"
+                required
+            >
+
+            <input
+                type="text"
+                name="patente_acoplado"
+                placeholder="Patente Acoplado"
+                required
+            >
+
+            <input
+                type="text"
+                name="destino"
+                placeholder="Destino (Opcional)"
+            >
+
+            <input
+                type="number"
+                step="0.01"
+                name="neto_cargar"
+                placeholder="Neto a cargar"
+                required
+            >
+
+            <input
+                type="text"
+                name="transporte"
+                placeholder="Transporte"
+                required
+            >
+
+            <button type="submit">
+                ENVIAR REGISTRO
+            </button>
+
+        </form>
+
+        <div id="ticketContainer"></div>
+
+        <div class="documentacion">
+
+            <h3>
+                DOCUMENTACIÓN NECESARIA PARA EL INGRESO A PLANTA
+            </h3>
+
+            <ul>
+                <li>Seguro vehículos</li>
+                <li>Seguro de carga</li>
+                <li>SENASA al día</li>
+                <li>Carnet VIGENTE</li>
+                <li>Equipo en condiciones higiénicas para carga</li>
+            </ul>
+
+        </div>
+
+        <p id="mensaje"></p>
+
+    </div>
+
+    <script>
+
+        const formulario = document.getElementById('formRegistro');
+
+        const boton = document.querySelector('button');
+
+        const inputs = formulario.querySelectorAll('input[required]');
+
+        boton.disabled = true;
+
+        function validarFormulario() {
+
+            let completo = true;
+
+            inputs.forEach(input => {
+
+                if (input.value.trim() === '') {
+
+                    completo = false;
+
+                }
+
+            });
+
+            boton.disabled = !completo;
+
+        }
+
+        inputs.forEach(input => {
+
+            input.addEventListener(
+                'input',
+                validarFormulario
+            );
+
+        });
+
+        formulario.addEventListener(
+            'submit',
+            async function (e) {
+
+                e.preventDefault();
+
+                boton.disabled = true;
+
+                boton.innerText = 'ENVIANDO...';
+
+                const datos = Object.fromEntries(
+                    new FormData(this)
+                );
+
+                const respuesta = await fetch(
+                    '/api/registros',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify(datos)
+                    }
+                );
+
+                const resultado = await respuesta.json();
+
+                console.log(resultado);
+
+                document.getElementById(
+                    'mensaje'
+                ).innerText = resultado.mensaje;
+
+                if (respuesta.ok) {
+
+                    const ticketNumero =
+                        resultado.ticket ||
+                        resultado.id ||
+                        resultado.insertId ||
+                        'NO RECIBIDO';
+
+                    const mensajeWhatsapp = encodeURIComponent(
+`Molinos Florencia
+
+Su registro fue cargado correctamente.
+
+Ticket N°: ${ticketNumero}
+
+Chofer: ${datos.nombre_apellido}
+Patente chasis: ${datos.patente_chasis}
+Patente acoplado: ${datos.patente_acoplado}
+Transporte: ${datos.transporte}
+
+Presente este número al ingresar a planta.`
+                    );
+
+                    document.getElementById(
+                        'ticketContainer'
+                    ).innerHTML = `
+                        <div class="ticket-box">
+
+                            <h2>
+                                Ticket N° ${ticketNumero}
+                            </h2>
+
+                            <a 
+                                href="https://wa.me/54${datos.celular}?text=${mensajeWhatsapp}"
+                                target="_blank"
+                                class="btn-whatsapp"
+                            >
+                                ENVIAR TICKET POR WHATSAPP
+                            </a>
+
+                        </div>
+                    `;
+
+                    this.reset();
+
+                }
+
+                boton.innerText = 'ENVIAR REGISTRO';
+
+                validarFormulario();
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>
